@@ -1,0 +1,23 @@
+/* QuarkLang 官方库：json —— JSON 序列化/反序列化（官方认证，调用方式与 Python json 类似）
+ *
+ * 用法（python 风格）：
+ *   import "json";
+ *   s String = json::dumps(h);           // 任意值 -> JSON 字符串
+ *   back HashTable<String, String> = json::loads(s);  // JSON -> 值（对象->HashTable）
+ *
+ * 运行时原语（qkjson_dumps/qkjson_loads）由 QuarkLang 运行时提供；
+ * 动态值经 interface{}（any）承载，可赋值给具体类型（运行时值兼容）。
+ * 安全：json.loads 非法输入报 JSONError；嵌套深度由 Go 编码栈控制。
+ */
+program library;
+
+space {
+    // 任意值 -> JSON 字符串（对象/数组/标量）
+    fn dumps(v interface{}) String {
+        return qkjson_dumps(v);
+    }
+    // JSON 字符串 -> 值（JSON 对象->HashTable；数组->List；标量->标量；整数->int）
+    fn loads(s String) interface{} {
+        return qkjson_loads(s);
+    }
+} (json);
