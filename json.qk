@@ -13,11 +13,11 @@ program library;
 
 space {
     // 任意值 -> JSON 字符串（对象/数组/标量）
-    fn dumps(v interface{}) String {
+    fn dumps(interface{} v) String {
         return qkjson_dumps(v);
     }
     // JSON 字符串 -> 值（JSON 对象->HashTable；数组->List；标量->标量；整数->int）
-    fn loads(s String) interface{} {
+    fn loads(String s) interface{} {
         return qkjson_loads(s);
     }
-} (json);
+} json;
