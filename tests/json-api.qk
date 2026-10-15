@@ -1,0 +1,89 @@
+// Behaviour pinned from README.md: json::dumps / json::loads and the documented type mapping
+// (object -> HashTable, array -> List, integer -> int, decimal -> float, string / bool / null).
+// Before this file existed the repository had no tests at all.
+import "json";
+
+program main;
+
+fn chk(IOStream io, List<int> st, String name, bool cond) int {
+    if (cond) {
+        io.println("OK " + name);
+    } else {
+        st[0] = st[0] + 1;
+        io.println("FAIL " + name);
+    }
+    return 0;
+}
+
+fn chkS(IOStream io, List<int> st, String name, String got, String want) int {
+    if (got == want) {
+        io.println("OK " + name);
+    } else {
+        st[0] = st[0] + 1;
+        io.println("FAIL " + name + " got=[" + got + "] want=[" + want + "]");
+    }
+    return 0;
+}
+
+fn chkI(IOStream io, List<int> st, String name, int got, int want) int {
+    if (got == want) {
+        io.println("OK " + name);
+    } else {
+        st[0] = st[0] + 1;
+        io.println("FAIL " + name + " got=" + got.toString() + " want=" + want.toString());
+    }
+    return 0;
+}
+
+fn main(IOStream io) {
+    List<int> st = [0];
+
+    // dumps: an object becomes JSON text, preserving the HashTable's own order.
+    HashTable<String, String> h = HashTable::new();
+    h.put("name", "QuarkLang");
+    h.put("version", "0.2");
+    chkS(io, st, "dumps-object", json::dumps(h), "{\"name\":\"QuarkLang\",\"version\":\"0.2\"}");
+
+    // dumps: arrays are compact (no spaces) and scalars follow JSON spelling.
+    List<int> l = [1, 2, 3];
+    chkS(io, st, "dumps-list", json::dumps(l), "[1,2,3]");
+    chkS(io, st, "dumps-int", json::dumps(42), "42");
+    chkS(io, st, "dumps-string", json::dumps("s"), "\"s\"");
+    chkS(io, st, "dumps-bool", json::dumps(true), "true");
+
+    // loads: the documented type mapping, one case per row of the README table.
+    int asInt = json::loads("7");
+    chkI(io, st, "loads-integer-is-int", asInt, 7);
+    float asFloat = json::loads("1.5");
+    chk(io, st, "loads-decimal-is-float", asFloat == 1.5);
+    String asStr = json::loads("\"hi\"");
+    chkS(io, st, "loads-string-is-string", asStr, "hi");
+    bool asBool = json::loads("true");
+    chk(io, st, "loads-true-is-bool", asBool == true);
+
+    // loads: object -> HashTable<String, T>, array -> List<T>.
+    HashTable<String, String> back = json::loads("{\"name\":\"QuarkLang\",\"version\":\"0.2\"}");
+    chkS(io, st, "loads-object-name", back.get("name"), "QuarkLang");
+    chkS(io, st, "loads-object-version", back.get("version"), "0.2");
+    List<int> nums = json::loads("[1,2,3]");
+    chkI(io, st, "loads-array-size", nums.size(), 3);
+    chkI(io, st, "loads-array-first", nums[0], 1);
+
+    // dumps and loads compose: the README's headline round trip.
+    chkS(io, st, "round-trip-object", json::dumps(json::loads("{\"a\":\"b\"}")), "{\"a\":\"b\"}");
+    chkS(io, st, "round-trip-list", json::dumps(json::loads("[1,2,3]")), "[1,2,3]");
+
+    // Malformed input must report JSONError rather than returning a bogus value.
+    bool raised = false;
+    String detail = "";
+    try {
+        json::loads("{\"a\":");
+    } catch (void e) {
+        raised = true;
+        detail = e;
+    }
+    chk(io, st, "loads-invalid-raises", raised);
+    chk(io, st, "loads-invalid-is-json-error", detail.startsWith("JSONError"));
+
+    io.println("failures=" + st[0].toString());
+}
